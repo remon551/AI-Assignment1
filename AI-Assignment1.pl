@@ -1,28 +1,67 @@
 :- consult(data).
 %%%%%%%%%%%%%helpers%%%%%%%%%%%%%%%%%%%%
+% appends order to a given list %
 append_order([], L, L).
 append_order([H|T], L2, [H|NT]):-
 	append_order(T, L2, NT).
 
+% checks if item is in list %
 is_in(_, []) :- false.
 is_in(Item, [Item|_]) :- !.
 is_in(Item, [_|T]) :- 
     is_in(Item, T).
 
-
+% get the length of a list. %
 list_length(List, Length):-
 	list_length(List, 0, Length).
 list_length([], TempLength, TempLength).
 list_length([_|T], TempLength, Length):-
 	TempLength1 is TempLength + 1,
 	list_length(T, TempLength1, Length).
+
+% Check If The Item Is Boycotted. %
+isBoycotted(Item) :-
+    item(Item, Company, _)
+    , boycott_company(Company, _).
+
+
+% Remove The Boycotted Items From The Item List. %
+removeBoycottItems([], []). % Base Case %
+
+removeBoycottItems([Item|Rest], NewItemList) :-  % Boycott Item %
+        isBoycotted(Item)
+        , removeBoycottItems(Rest, NewItemList).
+
+
+removeBoycottItems([Item|Rest], NewItemList) :-  % Not Boycott Item %
+        \+ isBoycotted(Item),
+        removeBoycottItems(Rest, RemainingList),
+        NewItemList = [Item|RemainingList].
+
+
+% Replace Boycotted Items From The Item List. %
+replaceBoycottItems([], []). % Base case %
+
+replaceBoycottItems([Item|Rest], NewItemList) :- % Boycott Item %
+    isBoycotted(Item),
+    alternative(Item, AlternativeItem),
+    replaceBoycottItems(Rest, RemainingList),
+    NewItemList = [AlternativeItem|RemainingList].
+
+
+replaceBoycottItems([Item|Rest], NewItemList) :- % Not Boycott Item %
+    \+ isBoycotted(Item),
+    replaceBoycottItems(Rest, RemainingList),
+    NewItemList = [Item|RemainingList].
+
+
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 
 
 
-%%%%%%%%first problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%1st problem%%%%%%%%%%%%%%%%%%%
 list_orders(CustomerName, Orders) :- 
     customer(CustomerID, CustomerName),
     collect_orders(CustomerID, [], Orders), !.
@@ -37,7 +76,7 @@ collect_orders(_, TempList, TempList).
 
 
 
-%%%%%%%%second problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%2nd problem%%%%%%%%%%%%%%%%%%%
 countOrdersOfCustomer(CustomerName, Number) :- 
     customer(CustomerID, CustomerName),
     countOrdersOfCustomer(CustomerID, [], 0, Number), !.
@@ -53,7 +92,7 @@ countOrdersOfCustomer(_, _,TempNumber, TempNumber).
 
 
 
-%%%%%%%%third problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%3rd problem%%%%%%%%%%%%%%%%%%%
 getItemsInOrderById(CustomerName, OrderID, Items) :- 
 	customer(CustomerID, CustomerName),
 	order(CustomerID, OrderID, Items).
@@ -61,7 +100,7 @@ getItemsInOrderById(CustomerName, OrderID, Items) :-
 
 
 
-%%%%%%%%forth problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%4th problem%%%%%%%%%%%%%%%%%%%
 getNumOfItems(CustomerName, OrderID, Length) :- 
 	customer(CustomerID, CustomerName),
 	order(CustomerID, OrderID, Items),
@@ -69,7 +108,7 @@ getNumOfItems(CustomerName, OrderID, Length) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%%%%%%%fifth problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%5th problem%%%%%%%%%%%%%%%%%%%
 calcPriceOfOrder(CustomerName, OrderID, TotalPrice) :-
     customer(CustomerID, CustomerName),
     order(CustomerID, OrderID, Items),
@@ -84,15 +123,59 @@ calculateItemsPrice([ItemID|Rest], Total) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%%%%%%%sixth problem%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%6th problem%%%%%%%%%%%%%%%%%%%
 isBoycott(Item) :-
     item(Item, Company, _)
     , boycott_company(Company, _).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%%%%%%%%%%7th problem%%%%%%%%%%%%%%%%%%%
+whyToBoycott(CompanyOrItemName,Justification):-
+    boycott_company(CompanyOrItemName, Justification)
+    ; item(CompanyOrItemName, CompanyName, _)
+    , boycott_company(CompanyName, Justification).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%8th problem%%%%%%%%%%%%%%%%%%%%
+removeBoycottItemsFromAnOrder(Username, OrderID, NewItemList) :-
+    customer(CustomerID, Username)
+    , order(CustomerID, OrderID, ItemList),
+    removeBoycottItems(ItemList, NewItemList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%9th problem%%%%%%%%%%%%%%%%%%
+replaceBoycottItemsFromAnOrder(Username, OrderID, NewItemList) :-
+    customer(CustomerID, Username),
+    order(CustomerID, OrderID, ItemList),
+    replaceBoycottItems(ItemList, NewItemList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%10th problem%%%%%%%%%%%%%%%%%%%
+calcPriceAfterReplacingBoycottItemsFromAnOrder(Username, OrderID, NewList, TotalPrice):-
+    replaceBoycottItemsFromAnOrder(Username,OrderID, NewList),
+    calculateItemsPrice(NewList, TotalPrice).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%11th problem%%%%%%%%%%%%%%%%%
+getTheDifferenceInPriceBetweenItemAndAlternative(Item, AlternativeItem, DiffPrice):-
+    alternative(Item, AlternativeItem), !,
+    item(Item, _, ItemPrice),
+    item(AlternativeItem, _, AlternativeItemPrice),
+    DiffPrice is ItemPrice - AlternativeItemPrice.
+
+getTheDifferenceInPriceBetweenItemAndAlternative(Item, Item, 0).
 
 
 %%%%%%%%%%%%12th problem%%%%%%%%%%%%%%%%%
+:- dynamic(item/3). % Declare item/3 as dynamic
+
 % Insert a new item
 add_item(Item, Company, Price) :-
     assert(item(Item, Company, Price)).
